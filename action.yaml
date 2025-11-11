@@ -18,6 +18,29 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: dependencies
+      shell: bash
+      run: |
+        if ! command -v nix &> /dev/null; then
+          echo "nix not found, please install nix first"
+          exit 1
+        fi
+
+        if ! command -v jq &> /dev/null; then
+          echo "::group::jq not found, installing via nix"
+          JQ_DIR=$(
+            nix shell nixpkgs#jq \
+              --inputs-from . \
+              --command bash \
+              -c "which jq"
+          )
+          JQ_PATH=$(dirname "${JQ_DIR}")
+          export PATH="${JQ_PATH}:${PATH}"
+          echo "${JQ_PATH}" >> $GITHUB_PATH
+          echo "added jq to PATH: ${JQ_PATH}"
+          echo "::endgroup::"
+        fi
+
     - shell: bash
       run: |
         echo "Reporting CVEs with CVSSv3 score greater than: ${{ inputs.score }}"
